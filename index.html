@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TES</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>Textile Effective Sequencing</h1>
+        </header>
+
+        <nav class="app-nav">
+            <ul>
+                <li><button id="tab-upload" class="active">Carga de Datos</button></li>
+                <li><button id="tab-machines">Máquinas</button></li>
+                <li><button id="tab-matrix">Matriz de progresión</button></li>
+                <li><button id="tab-optimizer">Optimización</button></li>
+                <li><button id="tab-results" disabled>Resultados</button></li>
+            </ul>
+        </nav>
+
+        <main class="app-content">
+            <!-- Pestaña de Carga de Datos -->
+            <section id="upload-section" class="tab-section active">
+                <div class="card">
+                    <h2>Carga de Datos</h2>
+                    
+                    <div id="file-upload" class="file-upload">
+                        <input type="file" id="excel-file" accept=".xlsx,.xls" hidden>
+                        <div id="upload-placeholder">
+                            <p>Arrastre y suelte un archivo Excel aquí o haga clic para seleccionar</p>
+                            <p><small>El archivo debe contener las hojas: "ejemplo de ordenes", "Maquinas" y "Matriz de progresion"</small></p>
+                        </div>
+                        <div id="upload-info" style="display: none;">
+                            <p>Archivo seleccionado: <strong id="file-name"></strong></p>
+                            <p>Tamaño: <span id="file-size"></span> KB</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 1rem; text-align: center;">
+                        <button id="upload-button" class="btn btn-primary" disabled>Cargar Datos</button>
+                    </div>
+                    
+                    <div id="upload-message" class="alert" style="display: none;"></div>
+                    
+                    <div class="form-group" style="margin-top: 2rem;">
+                        <h3>Instrucciones</h3>
+                        <ol>
+                            <li>Prepare un archivo Excel con las siguientes hojas:
+                                <ul>
+                                    <li><strong>ejemplo de ordenes</strong>: Con las órdenes de trabajo</li>
+                                    <li><strong>Maquinas</strong>: Con la lista de máquinas y sus familias</li>
+                                    <li><strong>Matriz de progresion</strong>: Con la matriz de progresión entre categorías de colores</li>
+                                </ul>
+                            </li>
+                            <li>Arrastre el archivo a la zona indicada o haga clic para seleccionarlo</li>
+                            <li>Haga clic en "Cargar Datos" para procesar el archivo</li>
+                            <li>Una vez cargado, podrá acceder a las demás pestañas para gestionar los datos y ejecutar la optimización</li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Pestaña de Máquinas -->
+            <section id="machines-section" class="tab-section">
+                <div class="card">
+                    <h2 id="machine-form-title">Agregar Máquina</h2>
+                    
+                    <div id="machine-message" class="alert" style="display: none;"></div>
+                    
+                    <div class="form-group">
+                        <label for="machine-name">Nombre:</label>
+                        <input type="text" id="machine-name" class="form-control" placeholder="Nombre de la máquina">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="machine-family">Familia:</label>
+                        <input type="text" id="machine-family" class="form-control" placeholder="Familia de la máquina">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Restricciones:</label>
+                        
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <select id="restriction-type" class="form-control">
+                                <option value="category">Categoría</option>
+                                <option value="fabricType">Tipo de Tela</option>
+                                <option value="minWeight">Peso Mínimo</option>
+                                <option value="maxWeight">Peso Máximo</option>
+                                <option value="colorCode">Código de Color</option>
+                            </select>
+                            
+                            <input type="text" id="restriction-value" class="form-control" placeholder="Valor de la restricción">
+                            
+                            <button id="add-restriction-btn" class="btn btn-secondary">Agregar</button>
+                        </div>
+                        
+                        <div id="restrictions-container"></div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                        <button id="cancel-machine-btn" class="btn btn-secondary">Cancelar</button>
+                        <button id="save-machine-btn" class="btn btn-primary">Agregar</button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2>Máquinas Disponibles</h2>
+                    
+                    <div id="machines-list" class="machine-list">
+                        <p id="no-machines-message">No hay máquinas disponibles. Agregue una nueva máquina utilizando el formulario.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Pestaña de Matriz de Transición -->
+            <section id="matrix-section" class="tab-section">
+                <div class="card">
+                    <h2>Matriz de progresión</h2>
+                    
+                    <div id="matrix-message" class="alert" style="display: none;"></div>
+                    
+                    <div class="form-group">
+                        <p>
+                            Esta matriz define el tipo de limpieza requerida cuando se cambia de una categoría de color a otra.
+                            Los valores posibles son:
+                        </p>
+                        <ul>
+                            <li><strong>1</strong>: Progresión natural (sin limpieza)</li>
+                            <li><strong>2, 3, K</strong>: Lavado completo</li>
+                            <li><strong>5</strong>: Enjuague</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Agregar nueva categoría:</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" id="new-category" class="form-control" placeholder="Nombre de la categoría">
+                            <button id="add-category-btn" class="btn btn-primary">Agregar</button>
+                        </div>
+                    </div>
+                    
+                    <div id="matrix-container" class="matrix-container">
+                        <p id="no-matrix-message">No hay categorías definidas. Agregue categorías o cargue datos desde un archivo Excel.</p>
+                        <table id="matrix-table" class="table matrix-table" style="display: none;">
+                            <thead id="matrix-header">
+                                <tr>
+                                    <th> Próximo Color ↓ / Color en Máquina →</th>
+                                </tr>
+                            </thead>
+                            <tbody id="matrix-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Pestaña de Optimización -->
+            <section id="optimizer-section" class="tab-section">
+                <div class="card">
+                    <h2>Optimización</h2>
+                    
+                    <div id="optimizer-message" class="alert" style="display: none;"></div>
+                    
+                    <div  class="form-group">
+                        <label for="balance-factor">
+                            Prioridad de equilibrio de carga: <span id="balance-factor-value">50</span>%
+                        </label>
+                        <input type="range" id="balance-factor" class="form-control" min="0" max="100" value="50">
+                        <div style="display: flex; justify-content: space-between;">
+                            <small>Minimizar lavados</small>
+                            <small>Equilibrar carga</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <p>
+                            <strong>Datos disponibles:</strong>
+                        </p>
+                        <ul>
+                            <li><span id="orders-count">0</span> órdenes de trabajo</li>
+                            <li><span id="machines-count">0</span> máquinas</li>
+                            <li><span id="categories-count">0</span> categorías de color</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="form-group" style="text-align: center;">
+                        <button id="optimize-btn" class="btn btn-primary" disabled>Ejecutar Optimización</button>
+                    </div>
+                    
+                    <div hidden class="form-group">
+                        <h3>Descripción del Algoritmo</h3>
+                        <p>
+                            El algoritmo de optimización asigna órdenes a máquinas minimizando los lavados y enjuagues necesarios,
+                            considerando todas las restricciones de compatibilidad y equilibrando la carga entre máquinas.
+                        </p>
+                        <p>
+                            <strong>Funcionamiento:</strong>
+                        </p>
+                        <ol>
+                            <li>Prioriza las órdenes con menos opciones de asignación</li>
+                            <li>Para cada orden, evalúa todas las posibles posiciones en máquinas compatibles</li>
+                            <li>Selecciona la posición que minimiza el costo total (lavados/enjuagues)</li>
+                            <li>Ajusta según el factor de equilibrio de carga seleccionado</li>
+                        </ol>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Pestaña de Resultados -->
+            <section id="results-section" class="tab-section">
+                <div class="card">
+                    <h2>Resultados de la Optimización</h2>
+                    
+                    <div id="results-message" class="alert" style="display: none;"></div>
+                    
+                    <div class="metrics-card">
+                        <div class="metric-item">
+                            <div id="total-washes" class="metric-value">0</div>
+                            <div class="metric-label">Lavados</div>
+                        </div>
+                        <div class="metric-item">
+                            <div id="total-rinses" class="metric-value">0</div>
+                            <div class="metric-label">Enjuagues</div>
+                        </div>
+                        <div class="metric-item">
+                            <div id="total-progressions" class="metric-value">0</div>
+                            <div class="metric-label">Progresiones</div>
+                        </div>
+                        <div class="metric-item">
+                            <div id="avoided-washes" class="metric-value">0.0</div>
+                            <div class="metric-label">Lavados Evitados</div>
+                        </div>
+                        <div hidden class="metric-item">
+                            <div id="load-balance" class="metric-value">0.00</div>
+                            <div class="metric-label">Equilibrio de Carga</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: center;">
+                        <button id="export-results-btn" class="btn btn-primary">Exportar Resultados</button>
+                        <button id="export-by-machine-btn" class="btn btn-secondary">Exportar por Máquina</button>
+                        <button id="toggle-view-btn" class="btn btn-secondary">Ver programación</button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2>Asignación de Órdenes</h2>
+                    
+                    <div class="form-group">
+                        <label for="machine-filter">Filtrar por máquina:</label>
+                        <select id="machine-filter" class="form-control">
+                            <option value="all">Todas las máquinas</option>
+                        </select>
+                    </div>
+                    
+                    <div style="overflow-x: auto;  max-height: 600px;">
+                        <table id="results-table" class="table">
+                            <thead style="position: sticky; top: 0;" >
+                                <tr>
+                                    <th>Familia</th>
+                                    <th>Máquina</th>
+                                    <th>Posición</th>
+                                    <th>Número de Orden</th>
+                                    <th>Categoría</th>
+                                    <th>Tipo de Tela</th>
+                                    <th>Estilo</th>
+                                    <th>Peso (lbs)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2>Secuencia por Máquina</h2>
+                    <div id="sequence-container"></div>
+                    <div id="gantt-container"></div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="app-footer">
+            <p>TES</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="js/models.js"></script>
+    <script src="js/data-manager.js"></script>
+    <script src="js/optimizer.js"></script>
+    <script src="js/gantt-view.js"></script>
+    <script src="js/ui-controller.js"></script>
+    <script src="js/main.js"></script>
+
+    <script>
+    document.addEventListener('click', function() {
+    const viewToggleButton = document.getElementById('toggle-view-btn');
+    if (viewToggleButton) {
+        viewToggleButton.addEventListener('click', function() {
+        const classicView = document.getElementById('sequence-container');
+        const ganttView = document.getElementById('gantt-container');
+        
+        if (classicView.style.display === 'none') {
+            // Cambiar a vista clásica
+            classicView.style.display = 'block';
+            ganttView.style.display = 'none';
+            viewToggleButton.textContent = 'Ver Programación';
+        } else {
+            // Cambiar a vista Gantt
+            classicView.style.display = 'none';
+            ganttView.style.display = 'block';
+            viewToggleButton.textContent = 'Tarjetas';
+            
+            // Renderizar vista Gantt si no se ha hecho
+            //if (ganttView.children.length === 0 && window.dataManager.optimizationResult) {
+            const ganttViewInstance = new GanttView(window.dataManager);
+            ganttViewInstance.render('gantt-container');
+            //}
+        }
+        });
+    }
+    });
+    </script>
+
+</body>
+</html>
