@@ -289,7 +289,7 @@ class GanttView {
             transitionIndicator.style.left = `${(prevOrder.endTime * timeData.timeScale) + 150}px`;
             transitionIndicator.style.top = `${this.rowHeight / 2 - 10}px`;
             transitionIndicator.style.width = `${(order.startTime - prevOrder.endTime) * timeData.timeScale}px`;
-            transitionIndicator.style.height = '20px';
+            transitionIndicator.style.height = '25px';
             transitionIndicator.style.display = 'flex';
             transitionIndicator.style.alignItems = 'center';
             transitionIndicator.style.justifyContent = 'center';
@@ -304,7 +304,7 @@ class GanttView {
             } else if (transitionType === 'rinse') {
               transitionIndicator.style.backgroundColor = 'rgba(161, 161, 161, 0.2)';
               transitionIndicator.style.border = '1px solid rgb(216, 216, 215)';
-              transitionIndicator.style.color = '#ffc107';
+              transitionIndicator.style.color = 'rgb(0, 0, 0)';
               transitionIndicator.style.fontWeight = 'bold';
               transitionIndicator.textContent = 'ENJUAGUE';
             }

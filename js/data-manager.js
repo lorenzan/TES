@@ -268,6 +268,15 @@ processMatrixSheet(sheet) {
     if (!this.optimizationResult) {
       throw new Error('No hay resultados para exportar.');
     }
+
+    
+  const today = new Date();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const yyyy = today.getFullYear();
+
+  const Date_text = `${mm}-${dd}-${yyyy}`;
+
     
     // Crear hoja de trabajo para resultados
     const ws = XLSX.utils.json_to_sheet(
@@ -278,9 +287,10 @@ processMatrixSheet(sheet) {
         'Máquina Asignada': order.assignedMachine,
         'Posición': order.position !== null ? order.position + 1 : '',
         'Peso': order.weight,
-        'Tipo de Tela': order.fabricType,
-        'Estilo de Tela': order.fabricStyle,
-        'Dye Code': order.colorCode
+        'Tejido': order.fabricType,
+        'Estilo': order.fabricStyle,
+        'Dye Code': order.colorCode,
+        'Secuencia': order.secuence
         
       }))
     );
@@ -302,7 +312,7 @@ processMatrixSheet(sheet) {
     XLSX.utils.book_append_sheet(wb, wsMetrics, 'Métricas');
 
     // Guardar archivo
-    XLSX.writeFile(wb, 'resultados_optimizacion.xlsx');
+    XLSX.writeFile(wb, 'TES_' +  Date_text + '.xlsx');
   }
 
   // Exportar resultados por máquina a Excel
@@ -338,11 +348,13 @@ processMatrixSheet(sheet) {
           'Número de Orden': order.number,
           'Categoría': order.category,
           'Familia': order.family,
+          'Máquina Asignada': order.assignedMachine,
           'Posición': order.position !== null ? order.position + 1 : '',
           'Peso': order.weight,
-          'Tipo de Tela': order.fabricType,
-          'Estilo de Tela': order.fabricStyle,
-          'Dye Code': order.colorCode
+          'Tejido': order.fabricType,
+          'Estilo': order.fabricStyle,
+          'Dye Code': order.colorCode,
+          'Secuencia': order.secuence
         }))
       );
       

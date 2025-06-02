@@ -409,8 +409,9 @@ class UIController {
       div.appendChild(tagsDiv);
       container.appendChild(div);
     }
-    
-    // Tipos de tejido
+
+
+    // Tipos de tejido, te comaprto el proyecto de JS comprimid, no me permite enviarte 
     if (this.tempRestrictions.fabricType.length > 0) {
       const div = document.createElement('div');
       div.innerHTML = '<strong>Tipos de Tejido:</strong>';
@@ -1022,19 +1023,15 @@ class UIController {
       sequenceDiv.className = 'sequence-item';
       
       machineOrders.forEach((order, index) => {
-        // Crear elemento de orden
-        const orderDiv = document.createElement('div');
-        orderDiv.className = 'sequence-order';
-        orderDiv.innerHTML = `<div><strong>${order.number}</strong></div><div>Cat: ${order.category}</div><div>Familia: ${order.family}</div><div>DyeCode: ${order.colorCode}</div>`;
-        sequenceDiv.appendChild(orderDiv);
-        
-        // Si no es la última orden, agregar flecha
-        if (index < machineOrders.length - 1) {
-          const nextOrder = machineOrders[index + 1];
-          
+        // verifica si el la primera orden
+        if(index === 0 ){
+          //const mc = new Machine();  const mensaje = edad >= 18 ? 'Mayor de edad' : 'Menor de edad';
+
+          const machine_obj= this.dataManager.machines.find(m => m.name === machine);
+          const nextOrder = machineOrders[index];
           // Determinar tipo de transición
           let transitionType = 'unknown';
-          const currentCategory = order.category;
+          const currentCategory = machine_obj.prevCategory === "" ? "0" : machine_obj.prevCategory;
           const nextCategory = nextOrder.category;
           const MapCategory = {
             10:1,101:2,11:3,12:4,121:5,13:6,131:7,14:8,20:9,201:10,21:11,211:12,22:13,221:14,23:15,
@@ -1044,26 +1041,23 @@ class UIController {
             82:60,821:61,83:62,831:63,84:64,91:65,911:66,92:67,921:68,93:69,931:70, 1:71, 2:72, 0:73,
 
           };
-        
-        if(currentCategory === 34){
+
           const originCat = MapCategory[currentCategory];
-        }
-
-        const originCat = MapCategory[currentCategory];
-        const destCat = MapCategory[nextCategory];
-
-
+          const destCat = MapCategory[nextCategory];
 
           const matrixValue = this.dataManager.matrixData.getValue(destCat, originCat);
           
           if (matrixValue === '1') {
             transitionType = 'progression';
+            order.secuence = "Progresion";
           } else if (matrixValue === '5') {
             transitionType = 'rinse';
+            order.secuence = "Enjuague";
           } else if (matrixValue === '2' || matrixValue === '3' || matrixValue === 'K') {
             transitionType = 'wash';
+            order.secuence = "Lavado";
           }
-          
+
           const arrowDiv = document.createElement('div');
           arrowDiv.className = `sequence-arrow ${transitionType}`;
           
@@ -1079,12 +1073,99 @@ class UIController {
           
           sequenceDiv.appendChild(arrowDiv);
         }
+
+        // Crear elemento de orden
+        const orderDiv = document.createElement('div');
+        orderDiv.className = 'sequence-order';
+        orderDiv.innerHTML = `<div><strong>${order.number}</strong></div><div>Cat: ${order.category}</div><div>Familia: ${order.family}</div><div>DyeCode: ${order.colorCode}</div>`;
+        sequenceDiv.appendChild(orderDiv);
+
+        if (index < machineOrders.length - 1) {
+          const nextOrder = machineOrders[index + 1];
+          // Determinar tipo de transición
+          let transitionType = 'unknown';
+          const currentCategory = order.category;
+          const nextCategory = nextOrder.category;
+          const MapCategory = {
+            10:1,101:2,11:3,12:4,121:5,13:6,131:7,14:8,20:9,201:10,21:11,211:12,22:13,221:14,23:15,
+            231:16,24:17,300:18,30:19,301:20,31:21,311:22,32:23,321:24,33:25,331:26,34:27,41:28,411:29,
+            42:30,421:31,43:32,431:33,44:34,51:35,511:36,52:37,521:38,53:39,531:40,54:41,61:42,611:43,62:44,
+            621:45,63:46,631:47,64:48,70:49,701:50,71:51,711:52,72:53,721:54,73:55,731:56,74:57,81:58,811:59,
+            82:60,821:61,83:62,831:63,84:64,91:65,911:66,92:67,921:68,93:69,931:70, 1:71, 2:72, 0:73,
+
+          };
+        
+          const originCat = MapCategory[currentCategory];
+          const destCat = MapCategory[nextCategory];
+          const matrixValue = this.dataManager.matrixData.getValue(destCat, originCat);
+          
+          if (matrixValue === '1') {
+            transitionType = 'progression';
+          } else if (matrixValue === '5') {
+            transitionType = 'rinse';
+          } else if (matrixValue === '2' || matrixValue === '3' || matrixValue === 'K') {
+            transitionType = 'wash';
+          }
+
+          if(machineOrders.length > 1){
+            if (matrixValue === '1') {
+              order.secuence = "Progresion";
+            } else if (matrixValue === '5') {
+              order.secuence = "Enjuague";
+            } else if (matrixValue === '2' || matrixValue === '3' || matrixValue === 'K') {
+              order.secuence = "Lavado";
+            }
+          }
+          const arrowDiv = document.createElement('div');
+          arrowDiv.className = `sequence-arrow ${transitionType}`;
+          
+          if (transitionType === 'progression') {
+            arrowDiv.textContent = '🟢';
+          } else if (transitionType === 'rinse') {
+            arrowDiv.textContent = '⚪';
+          } else if (transitionType === 'wash') {
+            arrowDiv.textContent = '🔴';
+          } else {
+            arrowDiv.textContent = '🔴';
+          }
+          
+          sequenceDiv.appendChild(arrowDiv);
+        }else if(machineOrders.length > 1){
+          const nextOrder = machineOrders[index-1];
+          // Determinar tipo de transición
+          let transitionType = 'unknown';
+          const currentCategory = order.category;
+          const nextCategory = nextOrder.category;
+          const MapCategory = {
+            10:1,101:2,11:3,12:4,121:5,13:6,131:7,14:8,20:9,201:10,21:11,211:12,22:13,221:14,23:15,
+            231:16,24:17,300:18,30:19,301:20,31:21,311:22,32:23,321:24,33:25,331:26,34:27,41:28,411:29,
+            42:30,421:31,43:32,431:33,44:34,51:35,511:36,52:37,521:38,53:39,531:40,54:41,61:42,611:43,62:44,
+            621:45,63:46,631:47,64:48,70:49,701:50,71:51,711:52,72:53,721:54,73:55,731:56,74:57,81:58,811:59,
+            82:60,821:61,83:62,831:63,84:64,91:65,911:66,92:67,921:68,93:69,931:70, 1:71, 2:72, 0:73,
+
+          };
+        
+          const originCat = MapCategory[currentCategory];
+          const destCat = MapCategory[nextCategory];
+          const matrixValue = this.dataManager.matrixData.getValue( originCat, destCat);
+          
+          if (matrixValue === '1') {
+              order.secuence = "Progresion";
+            } else if (matrixValue === '5') {
+             order.secuence = "Enjuague";
+            } else if (matrixValue === '2' || matrixValue === '3' || matrixValue === 'K') {
+              order.secuence = "Lavado";
+          }
+          
+        }
       });
       
       machineDiv.appendChild(sequenceDiv);
       sequenceContainer.appendChild(machineDiv);
     });
   }
+
+  
 
   // Mostrar mensaje
   showMessage(elementId, type, text) {

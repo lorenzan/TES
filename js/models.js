@@ -11,7 +11,8 @@ class Order {
     this.family = family;
     this.assignedMachine = null;
     this.position = null;
-    
+    this.secuence = null;
+  
   }
 }
 
@@ -31,6 +32,10 @@ class Machine {
       fabricType: [],     // Tipos de tejido permitidos
       tone: []            // Tonos permitidos
     };
+  }
+
+  getMachineByName(name) {
+    return this.machines.find(machine => machine.name === name);
   }
 
   // Verificar compatibilidad con una orden
