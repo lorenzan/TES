@@ -20,7 +20,7 @@ class Optimizer {
        // Verificar si el código de color está sectorizado
       const isSectorized = this.sectorizedCodes.includes(order.colorCode);
       
-      if(order.number === 606527){
+      if(order.number === 610597){
         abc = 1
       }
 

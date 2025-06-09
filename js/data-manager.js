@@ -276,21 +276,26 @@ processMatrixSheet(sheet) {
   const yyyy = today.getFullYear();
 
   const Date_text = `${mm}-${dd}-${yyyy}`;
+  const Date_ID = `${mm}${dd}${yyyy}`;
 
     
     // Crear hoja de trabajo para resultados
     const ws = XLSX.utils.json_to_sheet(
       this.optimizationResult.assignedOrders.map(order => ({
-        'Número de Orden': order.number,
-        'Categoría': order.category,
         'Familia': order.family,
         'Máquina Asignada': order.assignedMachine,
-        'Posición': order.position !== null ? order.position + 1 : '',
+        'Categoría': order.category,
+        'Número de Orden': order.number,
         'Peso': order.weight,
-        'Tejido': order.fabricType,
-        'Estilo': order.fabricStyle,
+        'Posición': order.position !== null ? order.position + 1 : '',
+        'Secuencia': order.secuence,
         'Dye Code': order.colorCode,
-        'Secuencia': order.secuence
+        'Estilo': order.fabricStyle,
+        'Tono':"",
+        'Status':"",
+        'Coments': "",
+        'ID': Date_ID,
+        'Tipo': "Secuenciada"
         
       }))
     );

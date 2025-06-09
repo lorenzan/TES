@@ -998,172 +998,133 @@ class UIController {
   }
 
   // Actualizar vista de secuencia
-  updateSequenceView() {
-    const sequenceContainer = document.getElementById('sequence-container');
-    sequenceContainer.innerHTML = '';
+updateSequenceView() {
+  const sequenceContainer = document.getElementById('sequence-container');
+  sequenceContainer.innerHTML = '';
+  
+  const uniqueMachines = this.dataManager.getUniqueMachinesFromResults();
+  
+  if (uniqueMachines.length === 0) {
+    sequenceContainer.innerHTML = '<p>No hay máquinas con órdenes asignadas.</p>';
+    return;
+  }
+  
+  // Constantes
+  const MAP_CATEGORY = {
+    10: 1, 101: 2, 11: 3, 12: 4, 121: 5, 13: 6, 131: 7, 14: 8, 20: 9, 201: 10,
+    21: 11, 211: 12, 22: 13, 221: 14, 23: 15, 231: 16, 24: 17, 300: 18, 30: 19,
+    301: 20, 31: 21, 311: 22, 32: 23, 321: 24, 33: 25, 331: 26, 34: 27, 41: 28,
+    411: 29, 42: 30, 421: 31, 43: 32, 431: 33, 44: 34, 51: 35, 511: 36, 52: 37,
+    521: 38, 53: 39, 531: 40, 54: 41, 61: 42, 611: 43, 62: 44, 621: 45, 63: 46,
+    631: 47, 64: 48, 70: 49, 701: 50, 71: 51, 711: 52, 72: 53, 721: 54, 73: 55,
+    731: 56, 74: 57, 81: 58, 811: 59, 82: 60, 821: 61, 83: 62, 831: 63, 84: 64,
+    91: 65, 911: 66, 92: 67, 921: 68, 93: 69, 931: 70, 1: 71, 2: 72, 0: 73
+  };
+
+  const TRANSITIONS = {
+    '1': { type: 'progression', symbol: '🟢', label: 'Progresion' },
+    '5': { type: 'rinse', symbol: '⚪', label: 'Enjuague' },
+    '2': { type: 'wash', symbol: '🔴', label: 'Lavado' },
+    '3': { type: 'wash', symbol: '🔴', label: 'Lavado' },
+    'K': { type: 'wash', symbol: '🔴', label: 'Lavado' }
+  };
+
+  // Función auxiliar para obtener transición
+  const getTransition = (fromCategory, toCategory) => {
+    const originCat = MAP_CATEGORY[fromCategory];
+    const destCat = MAP_CATEGORY[toCategory];
     
-    const uniqueMachines = this.dataManager.getUniqueMachinesFromResults();
-    
-    if (uniqueMachines.length === 0) {
-      sequenceContainer.innerHTML = '<p>No hay máquinas con órdenes asignadas.</p>';
-      return;
+    if (!originCat || !destCat) {
+      console.warn(`Categoría no encontrada: ${fromCategory} -> ${toCategory}`);
+      return TRANSITIONS['2']; // Default wash
     }
     
-    uniqueMachines.forEach(machine => {
-      const machineOrders = this.dataManager.getOrdersByMachine(machine);
-      
-      const machineDiv = document.createElement('div');
-      machineDiv.style.marginBottom = '1.5rem'; 
-      
-      const machineTitle = document.createElement('h3');
-      machineTitle.textContent = machine;
-      machineDiv.appendChild(machineTitle);
-      
-      const sequenceDiv = document.createElement('div');
-      sequenceDiv.className = 'sequence-item';
-      
-      machineOrders.forEach((order, index) => {
-        // verifica si el la primera orden
-        if(index === 0 ){
-          //const mc = new Machine();  const mensaje = edad >= 18 ? 'Mayor de edad' : 'Menor de edad';
+    const matrixValue = this.dataManager.matrixData.getValue(destCat, originCat);
+    return TRANSITIONS[matrixValue] || TRANSITIONS['2']; // Default wash
+  };
 
-          const machine_obj= this.dataManager.machines.find(m => m.name === machine);
-          const nextOrder = machineOrders[index];
-          // Determinar tipo de transición
-          let transitionType = 'unknown';
-          const currentCategory = machine_obj.prevCategory === "" ? "0" : machine_obj.prevCategory;
-          const nextCategory = nextOrder.category;
-          const MapCategory = {
-            10:1,101:2,11:3,12:4,121:5,13:6,131:7,14:8,20:9,201:10,21:11,211:12,22:13,221:14,23:15,
-            231:16,24:17,300:18,30:19,301:20,31:21,311:22,32:23,321:24,33:25,331:26,34:27,41:28,411:29,
-            42:30,421:31,43:32,431:33,44:34,51:35,511:36,52:37,521:38,53:39,531:40,54:41,61:42,611:43,62:44,
-            621:45,63:46,631:47,64:48,70:49,701:50,71:51,711:52,72:53,721:54,73:55,731:56,74:57,81:58,811:59,
-            82:60,821:61,83:62,831:63,84:64,91:65,911:66,92:67,921:68,93:69,931:70, 1:71, 2:72, 0:73,
+  // Procesar cada máquina
+  uniqueMachines.forEach(machine => {
+    const machineOrders = this.dataManager.getOrdersByMachine(machine);
+    
+    // Validar órdenes de máquina
+    if (!machineOrders || machineOrders.length === 0) {
+      console.warn(`No hay órdenes para la máquina: ${machine}`);
+      return;
+    }
 
-          };
+    // Obtener objeto de máquina
+    const machineObj = this.dataManager.machines.find(m => m.name === machine);
+    if (!machineObj) {
+      console.error(`Máquina no encontrada: ${machine}`);
+      return;
+    }
 
-          const originCat = MapCategory[currentCategory];
-          const destCat = MapCategory[nextCategory];
+    // Crear contenedor de máquina
+    const machineDiv = document.createElement('div');
+    machineDiv.style.marginBottom = '1.5rem';
+    
+    const machineTitle = document.createElement('h3');
+    machineTitle.textContent = machine;
+    machineDiv.appendChild(machineTitle);
+    
+    const sequenceDiv = document.createElement('div');
+    sequenceDiv.className = 'sequence-item';
 
-          const matrixValue = this.dataManager.matrixData.getValue(destCat, originCat);
-          
-          if (matrixValue === '1') {
-            transitionType = 'progression';
-            order.secuence = "Progresion";
-          } else if (matrixValue === '5') {
-            transitionType = 'rinse';
-            order.secuence = "Enjuague";
-          } else if (matrixValue === '2' || matrixValue === '3' || matrixValue === 'K') {
-            transitionType = 'wash';
-            order.secuence = "Lavado";
-          }
-
-          const arrowDiv = document.createElement('div');
-          arrowDiv.className = `sequence-arrow ${transitionType}`;
-          
-          if (transitionType === 'progression') {
-            arrowDiv.textContent = '🟢';
-          } else if (transitionType === 'rinse') {
-            arrowDiv.textContent = '⚪';
-          } else if (transitionType === 'wash') {
-            arrowDiv.textContent = '🔴';
-          } else {
-            arrowDiv.textContent = '🔴';
-          }
-          
-          sequenceDiv.appendChild(arrowDiv);
-        }
-
-        // Crear elemento de orden
-        const orderDiv = document.createElement('div');
-        orderDiv.className = 'sequence-order';
-        orderDiv.innerHTML = `<div><strong>${order.number}</strong></div><div>Cat: ${order.category}</div><div>Familia: ${order.family}</div><div>DyeCode: ${order.colorCode}</div>`;
-        sequenceDiv.appendChild(orderDiv);
-
-        if (index < machineOrders.length - 1) {
-          const nextOrder = machineOrders[index + 1];
-          // Determinar tipo de transición
-          let transitionType = 'unknown';
-          const currentCategory = order.category;
-          const nextCategory = nextOrder.category;
-          const MapCategory = {
-            10:1,101:2,11:3,12:4,121:5,13:6,131:7,14:8,20:9,201:10,21:11,211:12,22:13,221:14,23:15,
-            231:16,24:17,300:18,30:19,301:20,31:21,311:22,32:23,321:24,33:25,331:26,34:27,41:28,411:29,
-            42:30,421:31,43:32,431:33,44:34,51:35,511:36,52:37,521:38,53:39,531:40,54:41,61:42,611:43,62:44,
-            621:45,63:46,631:47,64:48,70:49,701:50,71:51,711:52,72:53,721:54,73:55,731:56,74:57,81:58,811:59,
-            82:60,821:61,83:62,831:63,84:64,91:65,911:66,92:67,921:68,93:69,931:70, 1:71, 2:72, 0:73,
-
-          };
+    // Procesar cada orden
+    machineOrders.forEach((order, index) => {
+      // Primera orden - transición desde estado previo de máquina
+      if (index === 0) {
+        const currentCategory = machineObj.prevCategory === "" ? "0" : machineObj.prevCategory;
+        const transition = getTransition(currentCategory, order.category);
         
-          const originCat = MapCategory[currentCategory];
-          const destCat = MapCategory[nextCategory];
-          const matrixValue = this.dataManager.matrixData.getValue(destCat, originCat);
-          
-          if (matrixValue === '1') {
-            transitionType = 'progression';
-          } else if (matrixValue === '5') {
-            transitionType = 'rinse';
-          } else if (matrixValue === '2' || matrixValue === '3' || matrixValue === 'K') {
-            transitionType = 'wash';
-          }
-
-          if(machineOrders.length > 1){
-            if (matrixValue === '1') {
-              order.secuence = "Progresion";
-            } else if (matrixValue === '5') {
-              order.secuence = "Enjuague";
-            } else if (matrixValue === '2' || matrixValue === '3' || matrixValue === 'K') {
-              order.secuence = "Lavado";
-            }
-          }
-          const arrowDiv = document.createElement('div');
-          arrowDiv.className = `sequence-arrow ${transitionType}`;
-          
-          if (transitionType === 'progression') {
-            arrowDiv.textContent = '🟢';
-          } else if (transitionType === 'rinse') {
-            arrowDiv.textContent = '⚪';
-          } else if (transitionType === 'wash') {
-            arrowDiv.textContent = '🔴';
-          } else {
-            arrowDiv.textContent = '🔴';
-          }
-          
-          sequenceDiv.appendChild(arrowDiv);
-        }else if(machineOrders.length > 1){
-          const nextOrder = machineOrders[index-1];
-          // Determinar tipo de transición
-          let transitionType = 'unknown';
-          const currentCategory = order.category;
-          const nextCategory = nextOrder.category;
-          const MapCategory = {
-            10:1,101:2,11:3,12:4,121:5,13:6,131:7,14:8,20:9,201:10,21:11,211:12,22:13,221:14,23:15,
-            231:16,24:17,300:18,30:19,301:20,31:21,311:22,32:23,321:24,33:25,331:26,34:27,41:28,411:29,
-            42:30,421:31,43:32,431:33,44:34,51:35,511:36,52:37,521:38,53:39,531:40,54:41,61:42,611:43,62:44,
-            621:45,63:46,631:47,64:48,70:49,701:50,71:51,711:52,72:53,721:54,73:55,731:56,74:57,81:58,811:59,
-            82:60,821:61,83:62,831:63,84:64,91:65,911:66,92:67,921:68,93:69,931:70, 1:71, 2:72, 0:73,
-
-          };
+        order.secuence = transition.label;
         
-          const originCat = MapCategory[currentCategory];
-          const destCat = MapCategory[nextCategory];
-          const matrixValue = this.dataManager.matrixData.getValue( originCat, destCat);
-          
-          if (matrixValue === '1') {
-              order.secuence = "Progresion";
-            } else if (matrixValue === '5') {
-             order.secuence = "Enjuague";
-            } else if (matrixValue === '2' || matrixValue === '3' || matrixValue === 'K') {
-              order.secuence = "Lavado";
-          }
-          
+        // Crear y agregar flecha
+        const arrowDiv = document.createElement('div');
+        arrowDiv.className = `sequence-arrow ${transition.type}`;
+        arrowDiv.textContent = transition.symbol;
+        sequenceDiv.appendChild(arrowDiv);
+      }
+
+      // Crear elemento de orden
+      const orderDiv = document.createElement('div');
+      orderDiv.className = 'sequence-order';
+      orderDiv.innerHTML = `
+        <div><strong>${order.number}</strong></div>
+        <div>Cat: ${order.category}</div>
+        <div>Familia: ${order.family}</div>
+        <div>DyeCode: ${order.colorCode}</div>
+      `;
+      sequenceDiv.appendChild(orderDiv);
+
+      // Transición a siguiente orden
+      if (index < machineOrders.length - 1) {
+        const nextOrder = machineOrders[index + 1];
+        const transition = getTransition(order.category, nextOrder.category);
+        
+        if (machineOrders.length > 1) {
+          order.secuence = transition.label;
         }
-      });
-      
-      machineDiv.appendChild(sequenceDiv);
-      sequenceContainer.appendChild(machineDiv);
+        
+        // Crear y agregar flecha
+        const arrowDiv = document.createElement('div');
+        arrowDiv.className = `sequence-arrow ${transition.type}`;
+        arrowDiv.textContent = transition.symbol;
+        sequenceDiv.appendChild(arrowDiv);
+      } 
+      // Última orden - establecer secuencia basada en transición previa
+      else if (machineOrders.length > 1 && index > 0) {
+        const prevOrder = machineOrders[index - 1];
+        const transition = getTransition(prevOrder.category, order.category);
+        order.secuence = transition.label;
+      }
     });
-  }
+
+    machineDiv.appendChild(sequenceDiv);
+    sequenceContainer.appendChild(machineDiv);
+  });
+}
 
   
 

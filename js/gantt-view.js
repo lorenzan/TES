@@ -84,7 +84,7 @@ class GanttView {
       
       orders.forEach((order, index) => {
         // Simular duración basada en el peso (1 minuto por kg)
-        const duration = order.weight || 30; // Mínimo 30 minutos
+        const duration = 800 //order.weight || 60; // Mínimo 30 minutos
         
         // Añadir tiempo de preparación/limpieza si es necesario
         if (index > 0) {
@@ -92,9 +92,21 @@ class GanttView {
           const transitionType = this.getTransitionType(prevOrder.category, order.category);
           
           if (transitionType === 'wash') {
-            currentTime += 400; // 60 minutos para lavado
+            currentTime += 500; // 60 minutos para lavado
           } else if (transitionType === 'rinse') {
-            currentTime += 400; // 30 minutos para enjuague
+            currentTime += 500; // 30 minutos para enjuague
+          } else {
+            currentTime += 10; // 10 minutos para progresión
+          }
+        }else{
+          const machine_obj= this.dataManager.machines.find(m => m.name === machine);
+          const prevOrder = machine_obj.prevCategory
+          const transitionType = this.getTransitionType(prevOrder, order.category);
+          
+          if (transitionType === 'wash') {
+            currentTime += 800; // 60 minutos para lavado
+          } else if (transitionType === 'rinse') {
+            currentTime += 800; // 30 minutos para enjuague
           } else {
             currentTime += 10; // 10 minutos para progresión
           }
@@ -187,8 +199,196 @@ class GanttView {
     return header;
   }
   
+// Crear fila para una máquina
+createMachineRow(machine, index, timeData) {
+  const row = document.createElement('div');
+  const machine_obj = this.dataManager.machines.find(m => m.name === machine);
+  row.className = 'gantt-row';
+  row.style.position = 'absolute';
+  row.style.left = '0';
+  row.style.top = `${this.headerHeight + (index * this.rowHeight)}px`;
+  row.style.width = `${timeData.totalWidth}px`;
+  row.style.height = `${this.rowHeight}px`;
+  row.style.borderBottom = '1px solid #dee2e6';
+
+  // Nombre de la máquina
+// Contenedor combinado de familia y nombre de máquina
+const machineInfo = document.createElement('div');
+machineInfo.style.cssText = `
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 150px;
+  height: ${this.rowHeight}px;
+  border-right: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 12px;
+  padding: 2px;
+  text-align: center;
+`;
+
+const familyDiv = document.createElement('div');
+familyDiv.textContent = machine_obj.family;
+familyDiv.style.cssText = 'color: #6c757d; font-size: 11px;';
+
+const nameDiv = document.createElement('div');
+nameDiv.textContent = machine;
+nameDiv.style.cssText = 'font-size: 13px; font-weight: bold;';
+
+machineInfo.appendChild(familyDiv);
+machineInfo.appendChild(nameDiv);
+
+row.appendChild(machineInfo);
+
+  
+  // Líneas de tiempo
+  timeData.timeMarks.forEach(mark => {
+    const timeLine = document.createElement('div');
+    timeLine.style.position = 'absolute';
+    timeLine.style.left = `${mark.position + 150}px`;
+    timeLine.style.top = '0';
+    timeLine.style.height = `${this.rowHeight}px`;
+    timeLine.style.borderLeft = '1px dashed #dee2e6';
+    timeLine.style.zIndex = '1';
+    row.appendChild(timeLine);
+  });
+
+  // Órdenes
+  const orders = timeData.machineData[machine];
+  if (orders?.length) {
+    let prevOrder = null;
+
+    orders.forEach(order => {
+      // Bloque de la orden
+      const orderBlock = document.createElement('div');
+      orderBlock.className = 'gantt-order';
+      orderBlock.style.cssText = `
+        position: absolute;
+        left: ${(order.startTime * timeData.timeScale) + 150}px;
+        top: 5px;
+        width: ${order.duration * timeData.timeScale}px;
+        height: ${this.rowHeight - 10}px;
+        background-color: ${this.getCategoryReal(order.category)};
+        border: 1px solid #343a40;
+        border-radius: 3px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 0 5px;
+        overflow: hidden;
+        z-index: 5;
+        cursor: pointer;
+      `;
+      orderBlock.title = `Orden: ${order.number}\nCategoría: ${order.category}\nPeso: ${order.weight} Lbs\nDye Code: ${order.colorCode}`;
+
+      const orderInfo = document.createElement('div');
+      orderInfo.style.cssText = `
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: ${(order.category === '93' || order.category === '53' || order.category === '73' || order.category === '54') ? '#FFFFFF' : this.getContrastColor(this.getCategoryReal(order.category))};
+        font-weight: bold;
+      `;
+      orderInfo.textContent = `${order.number}  Categoria: ${order.category}`;
+      orderBlock.appendChild(orderInfo);
+
+      if (order.duration * timeData.timeScale > 80) {
+        const codeInfo = document.createElement('div');
+        codeInfo.style.cssText = `
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          font-size: 10px;
+          color: ${(order.category === '93' || order.category === '53' || order.category === '73') ? '#FFFFFF' : this.getContrastColor(this.getCategoryReal(order.category))};
+        `;
+        codeInfo.textContent = order.colorCode || '';
+        orderBlock.appendChild(codeInfo);
+      }
+
+      row.appendChild(orderBlock);
+
+      // Determinar tipo de transición
+      let transitionType;
+      let transitionLeft = 0;
+      let transitionWidth = 0;
+
+      if (prevOrder) {
+        transitionType = this.getTransitionType(prevOrder.category, order.category);
+        transitionLeft = (prevOrder.endTime * timeData.timeScale) + 150;
+        transitionWidth = (order.startTime - prevOrder.endTime) * timeData.timeScale;
+      } else {
+        const machine_obj = this.dataManager.machines.find(m => m.name === order.assignedMachine);
+        const prevCategory = machine_obj?.prevCategory || '';
+        transitionType = this.getTransitionType(prevCategory, order.category);
+        transitionLeft = 160;  // Fijo para la primera orden
+        transitionWidth = 160;
+      }
+
+      if (transitionType !== 'progression') {
+        const transitionIndicator = document.createElement('div');
+        transitionIndicator.style.cssText = `
+          position: absolute;
+          left: ${transitionLeft}px;
+          top: ${this.rowHeight / 2 - 10}px;
+          width: ${transitionWidth}px;
+          height: 25px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 4;
+        `;
+
+        if (transitionType === 'wash') {
+          transitionIndicator.style.backgroundColor = 'rgba(220, 53, 69, 0.1)';
+          transitionIndicator.style.border = '2px dashed #dc3545';
+          transitionIndicator.style.color = '#dc3545';
+          transitionIndicator.innerHTML = `
+            <div style="
+              background-color: #dc3545;
+              color: white;
+              font-size: 10px;
+              padding: 2px 6px;
+              border-radius: 8px;
+              font-weight: bold;
+              box-shadow: 0 0 4px rgba(0,0,0,0.2);
+            ">LAVADO</div>
+          `;
+        } else if (transitionType === 'rinse') {
+          transitionIndicator.style.backgroundColor = 'rgba(255, 193, 7, 0.1)';
+          transitionIndicator.style.border = '2px dashed #ffc107';
+          transitionIndicator.style.color = '#856404';
+          transitionIndicator.innerHTML = `
+            <div style="
+              background-color: #ffc107;
+              color: black;
+              font-size: 10px;
+              padding: 2px 6px;
+              border-radius: 8px;
+              font-weight: bold;
+              box-shadow: 0 0 4px rgba(0,0,0,0.2);
+            ">ENJUAGUE</div>
+          `;
+        }
+
+        row.appendChild(transitionIndicator);
+      }
+
+      prevOrder = order;
+    });
+  }
+
+  return row;
+}
+
+
+
   // Crear fila para una máquina
-  createMachineRow(machine, index, timeData) {
+  createMachineRow22(machine, index, timeData) {
     const row = document.createElement('div');
     row.className = 'gantt-row';
     row.style.position = 'absolute';
@@ -260,7 +460,7 @@ class GanttView {
         orderInfo.style.whiteSpace = 'nowrap';
         orderInfo.style.overflow = 'hidden';
         orderInfo.style.textOverflow = 'ellipsis';
-        orderInfo.style.color = (order.category === '93' || order.category === '53' || order.category === '73') ? '#FFFFFF' : this.getContrastColor(this.getCategoryReal(order.category));
+        orderInfo.style.color = (order.category === '93' || order.category === '53' || order.category === '73' || order.category === '54') ? '#FFFFFF' : this.getContrastColor(this.getCategoryReal(order.category));
         orderInfo.style.fontWeight = 'bold';
         orderInfo.textContent = `${order.number}  Categoria: ${order.category}`;
         orderBlock.appendChild(orderInfo);
@@ -278,17 +478,22 @@ class GanttView {
         }
         
         row.appendChild(orderBlock);
-        
+
+        let transitionType;
+
         // Añadir indicador de transición si no es la primera orden
-        if (prevOrder) {
-          const transitionType = this.getTransitionType(prevOrder.category, order.category);
+       if (prevOrder ) {
+
+          transitionType = this.getTransitionType(prevOrder.category, order.category);
           
           if (transitionType !== 'progression') {
             const transitionIndicator = document.createElement('div');
             transitionIndicator.style.position = 'absolute';
-            transitionIndicator.style.left = `${(prevOrder.endTime * timeData.timeScale) + 150}px`;
+            //transitionIndicator.style.left = `${(prevOrder.endTime * timeData.timeScale) + 150}px`;
+            transitionIndicator.style.left = prevOrder === null ? '500px' : `${(prevOrder.endTime * timeData.timeScale) + 150}px`;
+
             transitionIndicator.style.top = `${this.rowHeight / 2 - 10}px`;
-            transitionIndicator.style.width = `${(order.startTime - prevOrder.endTime) * timeData.timeScale}px`;
+            transitionIndicator.style.width = prevOrder === null ? '500px': `${(order.startTime - prevOrder.endTime) * timeData.timeScale}px`;
             transitionIndicator.style.height = '25px';
             transitionIndicator.style.display = 'flex';
             transitionIndicator.style.alignItems = 'center';
@@ -296,22 +501,97 @@ class GanttView {
             transitionIndicator.style.zIndex = '4';
             
             if (transitionType === 'wash') {
-              transitionIndicator.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
-              transitionIndicator.style.border = '1px solid #dc3545';
+              transitionIndicator.style.backgroundColor = 'rgba(220, 53, 69, 0.1)';
+              transitionIndicator.style.border = '2px dashed #dc3545';
               transitionIndicator.style.color = '#dc3545';
-              transitionIndicator.style.fontWeight = 'bold';
-              transitionIndicator.textContent = 'LAVADO';
+              transitionIndicator.innerHTML = `
+                <div style="
+                  background-color: #dc3545;
+                  color: white;
+                  font-size: 10px;
+                  padding: 2px 6px;
+                  border-radius: 8px;
+                  font-weight: bold;
+                  box-shadow: 0 0 4px rgba(0,0,0,0.2);
+                ">LAVADO</div>
+              `;
             } else if (transitionType === 'rinse') {
-              transitionIndicator.style.backgroundColor = 'rgba(161, 161, 161, 0.2)';
-              transitionIndicator.style.border = '1px solid rgb(216, 216, 215)';
-              transitionIndicator.style.color = 'rgb(0, 0, 0)';
-              transitionIndicator.style.fontWeight = 'bold';
-              transitionIndicator.textContent = 'ENJUAGUE';
+              transitionIndicator.style.backgroundColor = 'rgba(255, 193, 7, 0.1)';
+              transitionIndicator.style.border = '2px dashed #ffc107';
+              transitionIndicator.style.color = '#856404';
+              transitionIndicator.innerHTML = `
+                <div style="
+                  background-color: #ffc107;
+                  color: black;
+                  font-size: 10px;
+                  padding: 2px 6px;
+                  border-radius: 8px;
+                  font-weight: bold;
+                  box-shadow: 0 0 4px rgba(0,0,0,0.2);
+                ">ENJUAGUE</div>
+              `;
             }
+
             
             row.appendChild(transitionIndicator);
           }
+        }else{
+
+          const machine_obj= this.dataManager.machines.find(m => m.name === order.assignedMachine);
+          const prevCategory = machine_obj.prevCategory
+
+          transitionType = this.getTransitionType(prevCategory, order.category); 
+
+          if (transitionType !== 'progression') {
+            const transitionIndicator = document.createElement('div');
+            transitionIndicator.style.position = 'absolute';
+            //transitionIndicator.style.left = `${(prevOrder.endTime * timeData.timeScale) + 150}px`;
+            transitionIndicator.style.left = prevOrder === null ? '500px' : `${(prevOrder.endTime * timeData.timeScale) + 150}px`;
+
+            transitionIndicator.style.top = `${this.rowHeight / 2 - 10}px`;
+            transitionIndicator.style.width = prevOrder === null ? '500px': `${(order.startTime - prevOrder.endTime) * timeData.timeScale}px`;
+            transitionIndicator.style.height = '25px';
+            transitionIndicator.style.display = 'flex';
+            transitionIndicator.style.alignItems = 'center';
+            transitionIndicator.style.justifyContent = 'center';
+            transitionIndicator.style.zIndex = '4';
+            
+            if (transitionType === 'wash') {
+              transitionIndicator.style.backgroundColor = 'rgba(220, 53, 69, 0.1)';
+              transitionIndicator.style.border = '2px dashed #dc3545';
+              transitionIndicator.style.color = '#dc3545';
+              transitionIndicator.innerHTML = `
+                <div style="
+                  background-color: #dc3545;
+                  color: white;
+                  font-size: 10px;
+                  padding: 2px 6px;
+                  border-radius: 8px;
+                  font-weight: bold;
+                  box-shadow: 0 0 4px rgba(0,0,0,0.2);
+                ">LAVADO</div>
+              `;
+            } else if (transitionType === 'rinse') {
+              transitionIndicator.style.backgroundColor = 'rgba(255, 193, 7, 0.1)';
+              transitionIndicator.style.border = '2px dashed #ffc107';
+              transitionIndicator.style.color = '#856404';
+              transitionIndicator.innerHTML = `
+                <div style="
+                  background-color: #ffc107;
+                  color: black;
+                  font-size: 10px;
+                  padding: 2px 6px;
+                  border-radius: 8px;
+                  font-weight: bold;
+                  box-shadow: 0 0 4px rgba(0,0,0,0.2);
+                ">ENJUAGUE</div>
+              `;
+            }
+
+            
+            row.appendChild(transitionIndicator);
         }
+      }
         
         prevOrder = order;
       });
